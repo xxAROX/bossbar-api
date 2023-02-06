@@ -1,5 +1,5 @@
 {
-    "name": "kfeig/bossbar-api",
+    "name": "xxarox/bossbar-api",
     "autoload": {
         "psr-4": {
             "xxAROX\\BossbarAPI\\": "src/xxAROX/BossbarAPI/"

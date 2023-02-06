@@ -1,6 +1,7 @@
 # bossbar-api
-My style of an OO bossbar-api for pmmp   |   codebase from: sky-min/bossbarapi
+My style of an oo bossbar-api for pmmp   |   codebase from: sky-min/bossbarapi
 
+```composer install xxarox/bossbar-api```
 
 <details>
 <summary>How to use?</summary>
