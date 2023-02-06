@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 namespace xxAROX\BossbarAPI;
+use Closure;
+use DaveRandom\CallbackValidator\CallbackType;
+use DaveRandom\CallbackValidator\ParameterType;
+use DaveRandom\CallbackValidator\ReturnType;
+use GlobalLogger;
 use pocketmine\entity\Entity;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\AddActorPacket;
@@ -13,6 +18,8 @@ use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\network\mcpe\protocol\types\entity\PropertySyncData;
 use pocketmine\player\Player;
 use pocketmine\Server;
+use pocketmine\utils\Utils;
+use Throwable;
 
 
 /**
@@ -29,6 +36,7 @@ class Bossbar{
 	protected ?EntityMetadataCollection $metadataCollection = null;
 	protected ?AddActorPacket $actorPacket = null;
 	protected int $bossActorId = -1;
+	protected ?Closure $textHandler = null;
 
 	/**
 	 * Bossbar constructor.
@@ -38,7 +46,13 @@ class Bossbar{
 	 * @param bool $darkenScreen
 	 * @param null|Vector3 $vector3
 	 */
-	function __construct(protected string $title = "", protected float $percentage = 1.0, protected ?BossbarColor $color = null, protected bool $darkenScreen = false, protected ?Vector3 $vector3 = null){
+	function __construct(
+		protected string $title = "",
+		protected float $percentage = 1.0,
+		protected ?BossbarColor $color = null,
+		protected bool $darkenScreen = false,
+		protected ?Vector3 $vector3 = null
+	){
 		$this->initializeMetadataCollection();
 		$this->initializeActorPacket();
 		$this->percentage = max(min(1.0, $this->percentage), 0);
@@ -79,9 +93,9 @@ class Bossbar{
 	 * @param string $title
 	 * @return Bossbar
 	 */
-	function setTitle(string $title): Bossbar{
+	public function setTitle(string $title): Bossbar{
 		$this->title = $title;
-		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::title($this->bossActorId, $this->title) ]);
+		foreach($this->players as $player) $player->getNetworkSession()->sendDataPacket(BossEventPacket::title($this->bossActorId, $this->textHandler->call($this, $player, $this->title)));
 		return $this;
 	}
 
@@ -89,7 +103,7 @@ class Bossbar{
 	 * Function getTitle
 	 * @return string
 	 */
-	function getTitle(): string{
+	public function getTitle(): string{
 		return $this->title;
 	}
 
@@ -98,7 +112,7 @@ class Bossbar{
 	 * @param float $percentage
 	 * @return Bossbar
 	 */
-	function setPercentage(float $percentage): Bossbar{
+	public function setPercentage(float $percentage): Bossbar{
 		$this->percentage = $percentage;
 		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::healthPercent($this->bossActorId, $this->percentage) ]);
 		return $this;
@@ -108,7 +122,7 @@ class Bossbar{
 	 * Function getPercentage
 	 * @return float
 	 */
-	function getPercentage(): float{
+	public function getPercentage(): float{
 		return $this->percentage;
 	}
 
@@ -117,7 +131,7 @@ class Bossbar{
 	 * @param null|BossbarColor $color
 	 * @return Bossbar
 	 */
-	function setColor(?BossbarColor $color): Bossbar{
+	public function setColor(?BossbarColor $color): Bossbar{
 		$this->color = $color;
 		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
 		return $this;
@@ -127,7 +141,7 @@ class Bossbar{
 	 * Function getColor
 	 * @return ?BossbarColor
 	 */
-	function getColor(): ?BossbarColor{
+	public function getColor(): ?BossbarColor{
 		return $this->color;
 	}
 
@@ -136,7 +150,7 @@ class Bossbar{
 	 * @param bool $darkenScreen
 	 * @return Bossbar
 	 */
-	function setDarkenScreen(bool $darkenScreen): Bossbar{
+	public function setDarkenScreen(bool $darkenScreen): Bossbar{
 		$this->darkenScreen = $darkenScreen;
 		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
 		return $this;
@@ -146,7 +160,7 @@ class Bossbar{
 	 * Function getDarkenScreen
 	 * @return bool
 	 */
-	function getDarkenScreen(): bool{
+	public function getDarkenScreen(): bool{
 		return $this->darkenScreen;
 	}
 
@@ -155,7 +169,7 @@ class Bossbar{
 	 * @param Player $player
 	 * @return bool
 	 */
-	function includesPlayer(Player $player): bool{
+	public function includesPlayer(Player $player): bool{
 		return isset($this->players[spl_object_id($player)]);
 	}
 
@@ -164,9 +178,9 @@ class Bossbar{
 	 * @param Player $player
 	 * @return Bossbar
 	 */
-	function addPlayer(Player $player): Bossbar{
+	public function addPlayer(Player $player): Bossbar{
 		$this->players[spl_object_id($player)] = $player;
-		Server::getInstance()->broadcastPackets([ $player ], [ BossEventPacket::show($this->bossActorId, $this->title, $this->percentage) ]);
+		Server::getInstance()->broadcastPackets([ $player ], [ BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage) ]);
 		return $this;
 	}
 
@@ -175,7 +189,7 @@ class Bossbar{
 	 * @param Player $player
 	 * @return Bossbar
 	 */
-	function removePlayer(Player $player): Bossbar{
+	public function removePlayer(Player $player): Bossbar{
 		if (isset($this->players[spl_object_id($player)])) unset($this->players[spl_object_id($player)]);
 		Server::getInstance()->broadcastPackets([ $player ], [ BossEventPacket::hide($this->bossActorId) ]);
 		return $this;
@@ -185,7 +199,7 @@ class Bossbar{
 	 * Function addAllPlayers
 	 * @return Bossbar
 	 */
-	function addAllPlayers(): Bossbar{
+	public function addAllPlayers(): Bossbar{
 		foreach (Server::getInstance()->getOnlinePlayers() as $player) $this->addPlayer($player);
 		return $this;
 	}
@@ -194,10 +208,26 @@ class Bossbar{
 	 * Function removeAllPlayers
 	 * @return Bossbar
 	 */
-	function removeAllPlayers(): Bossbar{
+	public function removeAllPlayers(): Bossbar{
 		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::hide($this->bossActorId) ]);
 		unset($this->players);
 		$this->players = [];
+		return $this;
+	}
+
+	/**
+	 * Function setTextHandler
+	 * @param null|Closure $textHandler Closure(Player $player, string $raw): string
+	 * @return Bossbar
+	 */
+	public function setTextHandler(?Closure $textHandler): Bossbar{
+		try {Utils::validateCallableSignature(new CallbackType(
+			new ReturnType("string"),
+			new ParameterType("player", Player::class),
+			new ParameterType("raw", "string")
+		), $textHandler);}
+		catch (Throwable $e) {GlobalLogger::get()->logException($e);}
+		$this->textHandler = $textHandler;
 		return $this;
 	}
 }

@@ -48,3 +48,28 @@ $bossBar
 ```
 
 </details>
+
+<details>
+<summary>How to use with a language-api?</summary>
+
+```php
+use xxAROX\BossbarAPI\{Bossbar,BossbarColor};
+
+$bossBar = new Bossbar(
+	"bossbar.title.example",
+	1.0,
+	/** @var BossbarColor */ BossbarColor::RED(),
+	/** @var bool */ false,
+	/** @var null|Vector3 */ $game->getMiddleVector3()
+);
+// first add a translation handler of your choice
+$bossBar->setTextHandler(fn (\pocketmine\player\Player $player, string $raw) => $player->getLanguage()->translate(new \pocketmine\lang\Translatable($raw)));
+
+// add players
+$bossBar->addAllPlayers();
+
+// update title
+$bossBar->setTitle("my.language.key");
+```
+
+</details>
