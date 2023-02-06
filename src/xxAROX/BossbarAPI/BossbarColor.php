@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace xxAROX\BossbarAPI;
 use pocketmine\utils\EnumTrait;
+use pocketmine\network\mcpe\protocol\types\BossBarColor as PMMPBossBarColor;
 
 
 /**
@@ -39,13 +40,13 @@ class BossbarColor{
 	 */
 	protected static function setup(): void{
 		self::registerAll(
-			new self("pink", 0),
-			new self("blue", 1),
-			new self("red", 2),
-			new self("green", 3),
-			new self("yellow", 4),
-			new self("purple", 5),
-			new self("white", 6),
+			new self("pink", PMMPBossBarColor::PINK),
+			new self("blue", PMMPBossBarColor::BLUE),
+			new self("red", PMMPBossBarColor::RED),
+			new self("green", PMMPBossBarColor::GREEN),
+			new self("yellow", PMMPBossBarColor::YELLOW),
+			new self("purple", PMMPBossBarColor::PURPLE),
+			new self("white", PMMPBossBarColor::WHITE),
 		);
 	}
 
