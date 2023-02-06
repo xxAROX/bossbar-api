@@ -1,5 +1,5 @@
-name: BossBarAPI
+name: BossbarAPI
 antigen: xxAROX\BossbarAPI
-api: 4.10.0
-version: 1.6.0
+api: 4.0.0
+version: 1.0.0
 author: xxAROX
