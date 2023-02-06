@@ -1,0 +1,18 @@
+{
+    "name": "kfeig/bossbar-api",
+    "autoload": {
+        "psr-4": {
+            "xxAROX\\BossbarAPI\\": "src/xxAROX/BossbarAPI/"
+        }
+    },
+    "authors": [
+        {
+            "name": "xxAROX",
+            "email": "arox.email.0@gmail.com"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "pocketmine/pocketmine-mp": "^4.13.0"
+    }
+}
