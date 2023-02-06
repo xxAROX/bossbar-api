@@ -1,5 +1,5 @@
 # bossbar-api
-My style of an oo bossbar-api for pmmp   |   codebase from: sky-min/bossbarapi
+My style of an object oriented bossbar-api for pmmp
 
 ```composer install xxarox/bossbar-api```
 
