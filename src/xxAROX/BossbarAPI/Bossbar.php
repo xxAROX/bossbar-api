@@ -56,9 +56,10 @@ class Bossbar{
 		$this->initializeMetadataCollection();
 		$this->initializeActorPacket();
 		$this->percentage = max(min(1.0, $this->percentage), 0);
-		$this->color ??= BossbarColor::PURPLE();
-		$this->vector3 ??= Vector3::zero();
+		$this->color = $color ?? BossbarColor::PURPLE();
+		$this->vector3 = $vector3 ?? Vector3::zero();
 		$this->bossActorId = Entity::nextRuntimeId();
+		$this->textHandler = fn (Player $player, string $raw): string => $raw;
 	}
 
 	/**
