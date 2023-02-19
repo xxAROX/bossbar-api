@@ -86,7 +86,7 @@ class Bossbar{
 	 */
 	private function initializeActorPacket(): void{
 		if (!is_null($this->actorPacket)) return;
-		$this->actorPacket = AddActorPacket::create($this->bossActorId, $this->bossActorId, EntityIds::SLIME, Vector3::zero(), null, 0.0, 0.0, 0.0, 0.0, [ new Attribute(\pocketmine\entity\Attribute::HEALTH, 0.0, 100.0, 100.0, 100.0, []) ], $this->metadataCollection->getAll(), new PropertySyncData([], []), []);
+		$this->actorPacket = AddActorPacket::create($this->bossActorId, $this->bossActorId, EntityIds::SLIME, $this->vector3, null, 0.0, 0.0, 0.0, 0.0, [ new Attribute(\pocketmine\entity\Attribute::HEALTH, 0.0, 100.0, 100.0, 100.0, []) ], $this->metadataCollection->getAll(), new PropertySyncData([], []), []);
 	}
 
 	/**
