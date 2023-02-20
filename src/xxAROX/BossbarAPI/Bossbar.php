@@ -34,7 +34,6 @@ use Throwable;
 class Bossbar{
 	protected int $bossActorId = -1;
 	protected ?EntityMetadataCollection $metadataCollection = null;
-	protected ?AddActorPacket $actorPacket = null;
 	protected ?Closure $textHandler = null;
 	/** @var array<Player> */
 	protected array $players = [];
@@ -45,21 +44,17 @@ class Bossbar{
 	 * @param float $percentage
 	 * @param null|BossbarColor $color
 	 * @param bool $darkenScreen
-	 * @param null|Vector3 $vector3
 	 */
 	function __construct(
 		protected string $title = "",
 		protected float $percentage = 1.0,
 		protected ?BossbarColor $color = null,
-		protected bool $darkenScreen = false,
-		protected ?Vector3 $vector3 = null
+		protected bool $darkenScreen = false
 	){
 		$this->bossActorId = Entity::nextRuntimeId();
 		$this->initializeMetadataCollection();
-		$this->initializeActorPacket($vector3 ?? Vector3::zero());
 		$this->percentage = max(min(1.0, $this->percentage), 0);
 		$this->color = $color ?? BossbarColor::PURPLE();
-		$this->vector3 = $vector3 ?? Vector3::zero();
 		$this->textHandler = fn (Player $player, string $raw): string => $raw;
 	}
 
@@ -84,15 +79,14 @@ class Bossbar{
 	/**
 	 * Function initializeActorPacket
 	 * @param null|Vector3 $vector3
-	 * @return void
+	 * @return AddActorPacket
 	 */
-	private function initializeActorPacket(?Vector3 $vector3 = null): void{
-		if (!is_null($this->actorPacket)) return;
-		$this->actorPacket = AddActorPacket::create(
+	private function initializeActorPacket(?Vector3 $vector3 = null): AddActorPacket{
+		return AddActorPacket::create(
 			$this->bossActorId,
 			$this->bossActorId,
 			EntityIds::SLIME,
-			$vector3 ?? $this->vector3,
+			$vector3 ?? Vector3::zero(),
 			null,
 			0.0,
 			0.0,
@@ -235,6 +229,7 @@ class Bossbar{
 	 */
 	public function addPlayer(Player $player): Bossbar{
 		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
+		else $player->getNetworkSession()->sendDataPacket($this->initializeActorPacket($player->getPosition()->asVector3()));
 		$this->players[$player->getId()] = $player;
 		$player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
 		return $this;
