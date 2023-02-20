@@ -31,12 +31,12 @@ use Throwable;
  * @project bossbar-api
  */
 class Bossbar{
-	/** @var array<Player> */
-	protected array $players = [];
+	protected int $bossActorId = -1;
 	protected ?EntityMetadataCollection $metadataCollection = null;
 	protected ?AddActorPacket $actorPacket = null;
-	protected int $bossActorId = -1;
 	protected ?Closure $textHandler = null;
+	/** @var array<Player> */
+	protected array $players = [];
 
 	/**
 	 * Bossbar constructor.
@@ -53,12 +53,12 @@ class Bossbar{
 		protected bool $darkenScreen = false,
 		protected ?Vector3 $vector3 = null
 	){
+		$this->bossActorId = Entity::nextRuntimeId();
 		$this->initializeMetadataCollection();
-		$this->initializeActorPacket();
+		$this->initializeActorPacket($vector3 ?? Vector3::zero());
 		$this->percentage = max(min(1.0, $this->percentage), 0);
 		$this->color = $color ?? BossbarColor::PURPLE();
 		$this->vector3 = $vector3 ?? Vector3::zero();
-		$this->bossActorId = Entity::nextRuntimeId();
 		$this->textHandler = fn (Player $player, string $raw): string => $raw;
 	}
 
@@ -82,11 +82,26 @@ class Bossbar{
 
 	/**
 	 * Function initializeActorPacket
+	 * @param null|Vector3 $vector3
 	 * @return void
 	 */
-	private function initializeActorPacket(): void{
+	private function initializeActorPacket(?Vector3 $vector3 = null): void{
 		if (!is_null($this->actorPacket)) return;
-		$this->actorPacket = AddActorPacket::create($this->bossActorId, $this->bossActorId, EntityIds::SLIME, $this->vector3, null, 0.0, 0.0, 0.0, 0.0, [ new Attribute(\pocketmine\entity\Attribute::HEALTH, 0.0, 100.0, 100.0, 100.0, []) ], $this->metadataCollection->getAll(), new PropertySyncData([], []), []);
+		$this->actorPacket = AddActorPacket::create(
+			$this->bossActorId,
+			$this->bossActorId,
+			EntityIds::SLIME,
+			$vector3 ?? $this->vector3,
+			null,
+			0.0,
+			0.0,
+			0.0,
+			0.0,
+			[ new Attribute(\pocketmine\entity\Attribute::HEALTH, 0.0, 100.0, 100.0, 100.0, []) ],
+			$this->metadataCollection->getAll(),
+			new PropertySyncData([], []),
+			[]
+		);
 	}
 
 	/**
