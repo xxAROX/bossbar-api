@@ -6,6 +6,7 @@ use DaveRandom\CallbackValidator\CallbackType;
 use DaveRandom\CallbackValidator\ParameterType;
 use DaveRandom\CallbackValidator\ReturnType;
 use GlobalLogger;
+use JetBrains\PhpStorm\Pure;
 use pocketmine\entity\Entity;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\AddActorPacket;
@@ -181,12 +182,50 @@ class Bossbar{
 	}
 
 	/**
+	 * Function hide
+	 * @param Player $player
+	 * @return Bossbar
+	 */
+	public function hide(Player $player): Bossbar{
+		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
+		return $this;
+	}
+
+	/**
+	 * Function show
+	 * @param Player $player
+	 * @return Bossbar
+	 */
+	public function show(Player $player): Bossbar{
+		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
+		else $this->addPlayer($player);
+		return $this;
+	}
+
+	/**
+	 * Function setTextHandler
+	 * @param null|Closure $textHandler Closure(Player $player, string $raw): string
+	 * @return Bossbar
+	 */
+	public function setTextHandler(?Closure $textHandler): Bossbar{
+		try {Utils::validateCallableSignature(new CallbackType(
+			new ReturnType("string"),
+			new ParameterType("player", Player::class),
+			new ParameterType("raw", "string")
+		), $textHandler);}
+		catch (Throwable $e) {GlobalLogger::get()->logException($e);}
+		$this->textHandler = $textHandler;
+		return $this;
+	}
+
+	/**
 	 * Function includesPlayer
 	 * @param Player $player
 	 * @return bool
 	 */
+	#[Pure]
 	public function includesPlayer(Player $player): bool{
-		return isset($this->players[spl_object_id($player)]);
+		return isset($this->players[$player->getId()]);
 	}
 
 	/**
@@ -195,8 +234,9 @@ class Bossbar{
 	 * @return Bossbar
 	 */
 	public function addPlayer(Player $player): Bossbar{
-		$this->players[spl_object_id($player)] = $player;
-		Server::getInstance()->broadcastPackets([ $player ], [ BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage) ]);
+		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
+		$this->players[$player->getId()] = $player;
+		$player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
 		return $this;
 	}
 
@@ -206,8 +246,10 @@ class Bossbar{
 	 * @return Bossbar
 	 */
 	public function removePlayer(Player $player): Bossbar{
-		if (isset($this->players[spl_object_id($player)])) unset($this->players[spl_object_id($player)]);
-		Server::getInstance()->broadcastPackets([ $player ], [ BossEventPacket::hide($this->bossActorId) ]);
+		if ($this->includesPlayer($player)) {
+			$player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
+			unset($this->players[$player->getId()]);
+		}
 		return $this;
 	}
 
@@ -228,22 +270,6 @@ class Bossbar{
 		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::hide($this->bossActorId) ]);
 		unset($this->players);
 		$this->players = [];
-		return $this;
-	}
-
-	/**
-	 * Function setTextHandler
-	 * @param null|Closure $textHandler Closure(Player $player, string $raw): string
-	 * @return Bossbar
-	 */
-	public function setTextHandler(?Closure $textHandler): Bossbar{
-		try {Utils::validateCallableSignature(new CallbackType(
-			new ReturnType("string"),
-			new ParameterType("player", Player::class),
-			new ParameterType("raw", "string")
-		), $textHandler);}
-		catch (Throwable $e) {GlobalLogger::get()->logException($e);}
-		$this->textHandler = $textHandler;
 		return $this;
 	}
 }
