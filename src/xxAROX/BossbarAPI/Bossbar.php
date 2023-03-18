@@ -51,6 +51,7 @@ class Bossbar{
 		protected ?BossbarColor $color = null,
 		protected bool $darkenScreen = false
 	){
+		$this->players = new \WeakMap();
 		$this->bossActorId = Entity::nextRuntimeId();
 		$this->initializeMetadataCollection();
 		$this->percentage = max(min(1.0, $this->percentage), 0);
