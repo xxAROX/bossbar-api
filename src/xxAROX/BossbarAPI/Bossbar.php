@@ -235,7 +235,10 @@ class Bossbar{
 	 */
 	public function addPlayer(Player $player): Bossbar{
 		if (!$player->getNetworkSession()->isConnected()) return $this;
-		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
+		if ($this->includesPlayer($player)) {
+			$this->show($player);
+			return $this;
+		}
 		else $player->getNetworkSession()->sendDataPacket($this->initializeActorPacket($player->getPosition()->asVector3()));
 		if (!$this->includesPlayer($player)) $this->players->offsetSet($player, true);
 		$player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
