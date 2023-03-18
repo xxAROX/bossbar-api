@@ -37,6 +37,8 @@ class Bossbar{
 	protected ?Closure $textHandler = null;
 	/** @var \WeakMap<Player, true> */
 	protected \WeakMap $players;
+	protected BossbarColor $color;
+	protected bool $darkenScreen = false;
 
 	/**
 	 * Function getPlayersAsArray
@@ -56,13 +58,11 @@ class Bossbar{
 	 * @param string $title
 	 * @param float $percentage
 	 * @param null|BossbarColor $color
-	 * @param bool $darkenScreen
 	 */
 	function __construct(
 		protected string $title = "",
 		protected float $percentage = 1.0,
-		protected ?BossbarColor $color = null,
-		protected bool $darkenScreen = false
+		BossbarColor $color = null
 	){
 		$this->players = new \WeakMap();
 		$this->bossActorId = Entity::nextRuntimeId();
@@ -215,7 +215,7 @@ class Bossbar{
 	 */
 	public function show(Player $player): Bossbar{
 		if (!$player->getNetworkSession()->isConnected()) return $this;
-		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
+		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage, $this->darkenScreen, $this->color->color()));
 		else $this->addPlayer($player);
 		return $this;
 	}
