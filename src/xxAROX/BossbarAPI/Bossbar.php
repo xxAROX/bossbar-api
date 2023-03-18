@@ -35,8 +35,8 @@ class Bossbar{
 	protected int $bossActorId = -1;
 	protected ?EntityMetadataCollection $metadataCollection = null;
 	protected ?Closure $textHandler = null;
-	/** @var array<Player> */
-	protected array $players = [];
+	/** @var \WeakMap<Player, true> */
+	protected \WeakMap $players;
 
 	/**
 	 * Bossbar constructor.
@@ -106,7 +106,8 @@ class Bossbar{
 	 */
 	public function setTitle(string $title): Bossbar{
 		$this->title = $title;
-		foreach($this->players as $player) $player->getNetworkSession()->sendDataPacket(BossEventPacket::title($this->bossActorId, $this->textHandler->call($this, $player, $this->title)));
+		/** @noinspection PhpParamsInspection */
+		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [BossEventPacket::title($this->bossActorId, $this->textHandler->call($this, $player, $this->title))]);
 		return $this;
 	}
 
@@ -125,7 +126,8 @@ class Bossbar{
 	 */
 	public function setPercentage(float $percentage): Bossbar{
 		$this->percentage = $percentage;
-		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::healthPercent($this->bossActorId, $this->percentage) ]);
+		/** @noinspection PhpParamsInspection */
+		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [ BossEventPacket::healthPercent($this->bossActorId, $this->percentage) ]);
 		return $this;
 	}
 
@@ -144,7 +146,8 @@ class Bossbar{
 	 */
 	public function setColor(?BossbarColor $color): Bossbar{
 		$this->color = $color;
-		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
+		/** @noinspection PhpParamsInspection */
+		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
 		return $this;
 	}
 
@@ -163,7 +166,8 @@ class Bossbar{
 	 */
 	public function setDarkenScreen(bool $darkenScreen): Bossbar{
 		$this->darkenScreen = $darkenScreen;
-		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
+		/** @noinspection PhpParamsInspection */
+		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
 		return $this;
 	}
 
@@ -191,6 +195,7 @@ class Bossbar{
 	 * @return Bossbar
 	 */
 	public function show(Player $player): Bossbar{
+		if (!$player->getNetworkSession()->isConnected()) return $this;
 		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
 		else $this->addPlayer($player);
 		return $this;
@@ -217,9 +222,8 @@ class Bossbar{
 	 * @param Player $player
 	 * @return bool
 	 */
-	#[Pure]
 	public function includesPlayer(Player $player): bool{
-		return isset($this->players[$player->getId()]);
+		return $this->players->offsetExists($player);
 	}
 
 	/**
@@ -228,9 +232,10 @@ class Bossbar{
 	 * @return Bossbar
 	 */
 	public function addPlayer(Player $player): Bossbar{
+		if (!$player->getNetworkSession()->isConnected()) return $this;
 		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
 		else $player->getNetworkSession()->sendDataPacket($this->initializeActorPacket($player->getPosition()->asVector3()));
-		$this->players[$player->getId()] = $player;
+		if (!$this->includesPlayer($player)) $this->players->offsetSet($player, true);
 		$player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
 		return $this;
 	}
@@ -241,9 +246,10 @@ class Bossbar{
 	 * @return Bossbar
 	 */
 	public function removePlayer(Player $player): Bossbar{
+		if (!$player->getNetworkSession()->isConnected()) return $this;
 		if ($this->includesPlayer($player)) {
 			$player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
-			unset($this->players[$player->getId()]);
+			$this->players->offsetUnset($player);
 		}
 		return $this;
 	}
@@ -264,7 +270,7 @@ class Bossbar{
 	public function removeAllPlayers(): Bossbar{
 		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::hide($this->bossActorId) ]);
 		unset($this->players);
-		$this->players = [];
+		$this->players = new \WeakMap();
 		return $this;
 	}
 }
