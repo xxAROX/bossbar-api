@@ -39,6 +39,19 @@ class Bossbar{
 	protected \WeakMap $players;
 
 	/**
+	 * Function getPlayersAsArray
+	 * @return array<Player>
+	 */
+	#[Pure]
+	private function getPlayersAsArray(): array{
+		$players = [];
+		foreach ($this->players as $player => $bool) {
+			if ($player instanceof Player) $players[$player->getId()] = $player;
+		}
+		return $players;
+	}
+
+	/**
 	 * Bossbar constructor.
 	 * @param string $title
 	 * @param float $percentage
@@ -76,7 +89,6 @@ class Bossbar{
 		$this->metadataCollection->setFloat(EntityMetadataProperties::BOUNDING_BOX_WIDTH, 0.0);
 		$this->metadataCollection->setFloat(EntityMetadataProperties::BOUNDING_BOX_HEIGHT, 0.0);
 	}
-
 	/**
 	 * Function initializeActorPacket
 	 * @param null|Vector3 $vector3
@@ -101,37 +113,12 @@ class Bossbar{
 	}
 
 	/**
-	 * Function setTitle
-	 * @param string $title
-	 * @return Bossbar
-	 */
-	public function setTitle(string $title): Bossbar{
-		$this->title = $title;
-		/** @noinspection PhpParamsInspection */
-		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [BossEventPacket::title($this->bossActorId, $this->textHandler->call($this, $player, $this->title))]);
-		return $this;
-	}
-
-	/**
 	 * Function getTitle
 	 * @return string
 	 */
 	public function getTitle(): string{
 		return $this->title;
 	}
-
-	/**
-	 * Function setPercentage
-	 * @param float $percentage
-	 * @return Bossbar
-	 */
-	public function setPercentage(float $percentage): Bossbar{
-		$this->percentage = $percentage;
-		/** @noinspection PhpParamsInspection */
-		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [ BossEventPacket::healthPercent($this->bossActorId, $this->percentage) ]);
-		return $this;
-	}
-
 	/**
 	 * Function getPercentage
 	 * @return float
@@ -139,19 +126,6 @@ class Bossbar{
 	public function getPercentage(): float{
 		return $this->percentage;
 	}
-
-	/**
-	 * Function setColor
-	 * @param null|BossbarColor $color
-	 * @return Bossbar
-	 */
-	public function setColor(?BossbarColor $color): Bossbar{
-		$this->color = $color;
-		/** @noinspection PhpParamsInspection */
-		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
-		return $this;
-	}
-
 	/**
 	 * Function getColor
 	 * @return ?BossbarColor
@@ -159,47 +133,12 @@ class Bossbar{
 	public function getColor(): ?BossbarColor{
 		return $this->color;
 	}
-
-	/**
-	 * Function setDarkenScreen
-	 * @param bool $darkenScreen
-	 * @return Bossbar
-	 */
-	public function setDarkenScreen(bool $darkenScreen): Bossbar{
-		$this->darkenScreen = $darkenScreen;
-		/** @noinspection PhpParamsInspection */
-		Server::getInstance()->broadcastPackets(array_keys($this->players->getIterator()), [ BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color()) ]);
-		return $this;
-	}
-
 	/**
 	 * Function getDarkenScreen
 	 * @return bool
 	 */
 	public function getDarkenScreen(): bool{
 		return $this->darkenScreen;
-	}
-
-	/**
-	 * Function hide
-	 * @param Player $player
-	 * @return Bossbar
-	 */
-	public function hide(Player $player): Bossbar{
-		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
-		return $this;
-	}
-
-	/**
-	 * Function show
-	 * @param Player $player
-	 * @return Bossbar
-	 */
-	public function show(Player $player): Bossbar{
-		if (!$player->getNetworkSession()->isConnected()) return $this;
-		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
-		else $this->addPlayer($player);
-		return $this;
 	}
 
 	/**
@@ -217,6 +156,69 @@ class Bossbar{
 		$this->textHandler = $textHandler;
 		return $this;
 	}
+	/**
+	 * Function setTitle
+	 * @param string $title
+	 * @return Bossbar
+	 */
+	public function setTitle(string $title): Bossbar{
+		$this->title = $title;
+		foreach ($this->getPlayersAsArray() as $player) {
+			if ($player->isConnected()) $player->getNetworkSession()->sendDataPacket(BossEventPacket::title($this->bossActorId, $this->textHandler->call($this, $player, $this->title)));
+		}
+		return $this;
+	}
+	/**
+	 * Function setPercentage
+	 * @param float $percentage
+	 * @return Bossbar
+	 */
+	public function setPercentage(float $percentage): Bossbar{
+		$this->percentage = $percentage;
+		Server::getInstance()->broadcastPackets($this->getPlayersAsArray(), [BossEventPacket::healthPercent($this->bossActorId, $this->percentage)]);
+		return $this;
+	}
+	/**
+	 * Function setColor
+	 * @param null|BossbarColor $color
+	 * @return Bossbar
+	 */
+	public function setColor(?BossbarColor $color): Bossbar{
+		$this->color = $color;
+		Server::getInstance()->broadcastPackets($this->getPlayersAsArray(), [BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color())]);
+		return $this;
+	}
+	/**
+	 * Function setDarkenScreen
+	 * @param bool $darkenScreen
+	 * @return Bossbar
+	 */
+	public function setDarkenScreen(bool $darkenScreen): Bossbar{
+		$this->darkenScreen = $darkenScreen;
+		Server::getInstance()->broadcastPackets($this->getPlayersAsArray(), [BossEventPacket::properties($this->bossActorId, $this->darkenScreen, $this->color->color())]);
+		return $this;
+	}
+
+	/**
+	 * Function hide
+	 * @param Player $player
+	 * @return Bossbar
+	 */
+	public function hide(Player $player): Bossbar{
+		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::hide($this->bossActorId));
+		return $this;
+	}
+	/**
+	 * Function show
+	 * @param Player $player
+	 * @return Bossbar
+	 */
+	public function show(Player $player): Bossbar{
+		if (!$player->getNetworkSession()->isConnected()) return $this;
+		if ($this->includesPlayer($player)) $player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
+		else $this->addPlayer($player);
+		return $this;
+	}
 
 	/**
 	 * Function includesPlayer
@@ -226,7 +228,6 @@ class Bossbar{
 	public function includesPlayer(Player $player): bool{
 		return $this->players->offsetExists($player);
 	}
-
 	/**
 	 * Function addPlayer
 	 * @param Player $player
@@ -240,7 +241,14 @@ class Bossbar{
 		$player->getNetworkSession()->sendDataPacket(BossEventPacket::show($this->bossActorId, $this->textHandler->call($this, $player, $this->title), $this->percentage));
 		return $this;
 	}
-
+	/**
+	 * Function addAllPlayers
+	 * @return Bossbar
+	 */
+	public function addAllPlayers(): Bossbar{
+		foreach (Server::getInstance()->getOnlinePlayers() as $player) $this->addPlayer($player);
+		return $this;
+	}
 	/**
 	 * Function removePlayer
 	 * @param Player $player
@@ -254,16 +262,6 @@ class Bossbar{
 		}
 		return $this;
 	}
-
-	/**
-	 * Function addAllPlayers
-	 * @return Bossbar
-	 */
-	public function addAllPlayers(): Bossbar{
-		foreach (Server::getInstance()->getOnlinePlayers() as $player) $this->addPlayer($player);
-		return $this;
-	}
-
 	/**
 	 * Function removeAllPlayers
 	 * @return Bossbar
