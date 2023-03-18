@@ -267,7 +267,7 @@ class Bossbar{
 	 * @return Bossbar
 	 */
 	public function removeAllPlayers(): Bossbar{
-		Server::getInstance()->broadcastPackets($this->players, [ BossEventPacket::hide($this->bossActorId) ]);
+		Server::getInstance()->broadcastPackets($this->getPlayersAsArray(), [ BossEventPacket::hide($this->bossActorId) ]);
 		unset($this->players);
 		$this->players = new \WeakMap();
 		return $this;
